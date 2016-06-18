@@ -23,20 +23,21 @@ for _ in 1...10{
 }
 
 
-for var i = 0;i < 10;i++ {
+for var i = 0;i < 10;i+=1 {
     x += 2
 }
 
 
 var n:Int = 0
 
-while 10 > n++ {
+while 10 > n{
     "index:" + String(n)
+    n+=1
 }
 
 let friend = ["さとう","さいとう","こばやし"]
 var m:Int = 0
 repeat {
     print(friend[m])
-    m++
+    m+=1
 } while(m < friend.count)
