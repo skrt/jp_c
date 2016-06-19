@@ -1,45 +1,52 @@
-//: Playground - noun: a place where people can play
+print(1 + 1)
+print(5 - 3)
+print(3 * 3)
+print(6 / 2)
+print(7 % 3)
 
-import UIKit
+//地球の体積
+print(4 / 3 * 3.14 * 6378 * 6378 * 6378)
 
-var x = 300
+var i = 3
+print(i * i)
+var x = 13
+print(x * x)
 
 
-switch x {
-    case 0 :
-        "zero"
-    case 1...9:
-        "1桁"
-    case 10...99:
-        "2桁"
-    case 100...999:
-        "3桁"
-    default:
-        "無いよ"
+for n in 1...9{
+    print(3 * n)
 }
 
-for _ in 1...10{
-    x += 2
+var j = 0
+
+for n in 1...100{
+    j += n
+}
+print(j)
+
+var arr = [95,70,80]
+var all = 0
+
+for test in arr{
+    all += test
 }
 
+print(all)
 
-for var i = 0;i < 10;i+=1 {
-    x += 2
+var scoreAll = [
+    1:" 国語",
+    70:"数学",
+    80:"英語"
+]
+
+scoreAll[70] = "物理"
+
+print(scoreAll)
+
+func rect(long:Int) -> Int {
+    let area = long * long
+    return area
 }
 
-
-var n:Int = 0
-
-while 10 > n{
-    "index:" + String(n)
-    n+=1
-}
-
-let friend = ["さとう","さいとう","こばやし"]
-var m:Int = 0
-repeat {
-    print(friend[m])
-    m+=1
-} while(m < friend.count)
-
-
+var result = rect(3)
+print(result)
