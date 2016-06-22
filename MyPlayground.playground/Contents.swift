@@ -50,3 +50,39 @@ func rect(long:Int) -> Int {
 
 var result = rect(3)
 print(result)
+
+
+func calc(num:Int) -> Int {
+    var total:Int = 0
+    for n in 1...num {
+        total += n
+    }
+    return total
+}
+
+var total = calc(100)
+print(total)
+
+
+func tax (prince p:Int,rate r:Double) -> Int{
+    return Int(Double(p) * (1.0 + r))
+}
+
+
+var result2 = tax(prince:1000, rate:0.8)
+print(result2)
+
+func friend(name n:String, age a:Int) -> (n:String, a:Int){
+    _ = (n:"Taro", a:27)
+    return(n:n ,a:a)
+}
+
+var frd = friend(name:"Jiro", age:35)
+frd.n
+frd.a
+
+var kota = ("kawaii",2)
+kota.0
+kota.1
+
+
