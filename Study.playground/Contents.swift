@@ -21,3 +21,13 @@ var cheetah = Cheetah()
 var cat = Cat()
 cheetah.run()
 cat.run()
+
+func testtt(base b:Int, height h:Int) -> Int
+{
+    let area = b * h / 2
+    return area
+}
+
+
+var skrt = testtt(base:2 , height: 2)
+print("\(skrt)")
