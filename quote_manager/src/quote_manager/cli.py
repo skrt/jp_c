@@ -13,6 +13,217 @@ def main():
     init_db()
 
 
+# ===== Auth command =====
+
+@main.command("auth")
+def auth():
+    """Gmail OAuth認証をセットアップ"""
+    from quote_manager.config import get_settings
+    settings = get_settings()
+
+    creds_path = settings.gmail_credentials_path
+    if not Path(creds_path).exists():
+        click.echo("⚠ Gmail認証にはOAuth2の credentials.json が必要です。")
+        click.echo("")
+        click.echo("セットアップ手順:")
+        click.echo("  1. Google Cloud Console (console.cloud.google.com) にアクセス")
+        click.echo("  2. プロジェクトを作成（または既存を選択）")
+        click.echo("  3. 「APIとサービス」→「ライブラリ」→ Gmail API を有効化")
+        click.echo("  4. 「APIとサービス」→「認証情報」→「認証情報を作成」→「OAuthクライアントID」")
+        click.echo("     - アプリケーションの種類: デスクトップアプリ")
+        click.echo("  5. JSONをダウンロードして credentials.json としてこのディレクトリに配置")
+        click.echo(f"     → {Path(creds_path).resolve()}")
+        click.echo("")
+        click.echo("配置後にもう一度 'quote-manager auth' を実行してください。")
+        return
+
+    click.echo("Gmail認証を開始します... ブラウザが開きます。")
+    try:
+        from quote_manager.gmail.auth import get_gmail_service
+        service = get_gmail_service(creds_path, settings.gmail_token_path)
+        # Verify by fetching profile
+        profile = service.users().getProfile(userId="me").execute()
+        click.echo(f"✓ 認証成功！ アカウント: {profile['emailAddress']}")
+        click.echo(f"  メール数: {profile.get('messagesTotal', '不明')}")
+    except Exception as e:
+        click.echo(f"✗ 認証エラー: {e}")
+
+
+# ===== Scan & Auto-group command =====
+
+@main.command("scan")
+@click.option("--query", "-q", default="見積", help="Gmail検索クエリ (デフォルト: 見積)")
+@click.option("--max-results", "-m", default=50, help="取得件数上限")
+@click.option("--auto-create", "-a", is_flag=True, help="確認なしで案件を自動作成")
+def scan(query, max_results, auto_create):
+    """Gmailを検索して見積メールを自動グルーピング → 案件作成"""
+    click.echo(f"Gmailを検索中... クエリ: '{query}' (最大 {max_results}件)")
+
+    try:
+        from quote_manager.gmail.fetcher import fetch_emails
+        from quote_manager.gmail.grouper import auto_group, summarize_group
+    except Exception as e:
+        click.echo(f"✗ Gmail接続エラー: {e}")
+        click.echo("  'quote-manager auth' で認証をセットアップしてください。")
+        return
+
+    try:
+        emails = fetch_emails(query, max_results=max_results)
+    except Exception as e:
+        click.echo(f"✗ メール取得エラー: {e}")
+        return
+
+    if not emails:
+        click.echo("見積関連のメールが見つかりませんでした。")
+        return
+
+    click.echo(f"  {len(emails)}件のメールを取得しました。")
+    click.echo("")
+
+    # Auto-group
+    groups = auto_group(emails)
+    click.echo(f"  → {len(groups)}件の案件グループに分類しました。")
+    click.echo("")
+
+    # Display groups
+    summaries = []
+    for key, group_emails in groups.items():
+        summary = summarize_group(key, group_emails)
+        summaries.append(summary)
+
+    for i, s in enumerate(summaries, 1):
+        date_from, date_to = s["date_range"]
+        date_str = ""
+        if date_from and date_to:
+            date_str = f"{date_from.strftime('%m/%d')}~{date_to.strftime('%m/%d')}"
+
+        att_mark = " [添付あり]" if s["has_attachments"] else ""
+        click.echo(f"  [{i}] {s['suggested_name']}")
+        click.echo(f"      メール数: {s['email_count']}  送信元: {', '.join(s['senders'][:3])}{'...' if len(s['senders']) > 3 else ''}")
+        click.echo(f"      期間: {date_str}{att_mark}")
+        click.echo("")
+
+    # Create projects
+    if not auto_create:
+        click.echo("---")
+        click.echo("案件として登録するグループを選択してください。")
+        click.echo("  番号をカンマ区切りで入力 (例: 1,3,5)  /  'all' で全て  /  'q' でキャンセル")
+        selection = click.prompt("選択", default="all")
+
+        if selection.strip().lower() == "q":
+            click.echo("キャンセルしました。")
+            return
+        elif selection.strip().lower() == "all":
+            selected_indices = list(range(len(summaries)))
+        else:
+            try:
+                selected_indices = [int(x.strip()) - 1 for x in selection.split(",")]
+            except ValueError:
+                click.echo("無効な入力です。")
+                return
+    else:
+        selected_indices = list(range(len(summaries)))
+
+    session = get_session()
+    try:
+        created_count = 0
+        for idx in selected_indices:
+            if idx < 0 or idx >= len(summaries):
+                click.echo(f"  スキップ: 無効な番号 {idx + 1}")
+                continue
+
+            s = summaries[idx]
+
+            # Check for existing project with same name
+            existing = session.query(Project).filter_by(name=s["suggested_name"]).first()
+            if existing:
+                click.echo(f"  スキップ: 「{s['suggested_name']}」は既に案件ID {existing.id} として登録済み")
+                continue
+
+            # Build Gmail query to re-fetch this group's emails
+            senders = s["senders"]
+            subjects = s["subjects"]
+            # Use the first subject as query base
+            gmail_query = f"subject:({subjects[0]})" if subjects else query
+
+            project = Project(
+                name=s["suggested_name"],
+                gmail_query=gmail_query,
+                description=f"送信元: {', '.join(senders[:5])}",
+            )
+            session.add(project)
+            session.flush()
+
+            click.echo(f"  ✓ 案件作成: [{project.id}] {project.name}")
+            created_count += 1
+
+            # Immediately ingest the already-fetched emails
+            from quote_manager.services.ingestion import _try_parse_with_fallback, _parsed_to_quote, _get_or_create_supplier, _is_already_processed
+            from quote_manager.models import EmailRecord
+            from quote_manager.parsers.email_body import EmailBodyParser
+            from quote_manager.parsers.pdf_parser import PdfParser
+            from quote_manager.parsers.excel_parser import ExcelParser
+            import json
+
+            email_parser = EmailBodyParser()
+            pdf_parser = PdfParser()
+            excel_parser = ExcelParser()
+            quote_count = 0
+
+            for raw_email in s["emails"]:
+                if _is_already_processed(session, raw_email.message_id):
+                    continue
+
+                metadata = {
+                    "sender_name": raw_email.sender,
+                    "sender_email": raw_email.sender_email,
+                    "subject": raw_email.subject,
+                }
+
+                record = EmailRecord(
+                    message_id=raw_email.message_id,
+                    source="gmail",
+                    project_id=project.id,
+                    subject=raw_email.subject,
+                    sender=raw_email.sender_email,
+                    received_at=raw_email.date,
+                    processed=True,
+                    attachment_paths=json.dumps(raw_email.attachment_paths) if raw_email.attachment_paths else None,
+                )
+                session.add(record)
+
+                # Parse email body
+                if raw_email.body_text:
+                    parsed = _try_parse_with_fallback(raw_email.body_text, email_parser, metadata)
+                    if parsed:
+                        _parsed_to_quote(session, parsed, project, "email_body")
+                        quote_count += 1
+
+                # Parse attachments
+                for att_path in raw_email.attachment_paths:
+                    lower_path = att_path.lower()
+                    if lower_path.endswith(".pdf"):
+                        parsed = _try_parse_with_fallback(att_path, pdf_parser, metadata)
+                    elif lower_path.endswith((".xlsx", ".xls")):
+                        parsed = _try_parse_with_fallback(att_path, excel_parser, metadata)
+                    else:
+                        parsed = None
+                    if parsed:
+                        source_type = "pdf" if lower_path.endswith(".pdf") else "excel"
+                        _parsed_to_quote(session, parsed, project, source_type, att_path)
+                        quote_count += 1
+
+            if quote_count:
+                click.echo(f"      → {quote_count}件の見積を抽出")
+
+        session.commit()
+        click.echo(f"\n✓ {created_count}件の案件を作成しました。")
+        click.echo("  'quote-manager project list' で一覧を確認できます。")
+        click.echo("  'quote-manager compare <ID>' で比較表を表示できます。")
+    finally:
+        session.close()
+
+
 # ===== Project commands =====
 
 @main.group()
