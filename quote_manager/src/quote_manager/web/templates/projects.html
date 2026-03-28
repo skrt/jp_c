@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}案件一覧 - 見積管理システム{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <h2>案件一覧</h2>
+    <a href="{{ url_for('main.project_create') }}" class="btn btn-primary">+ 新規案件</a>
+</div>
+
+{% if projects %}
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>案件名</th>
+                <th>ステータス</th>
+                <th>ソース</th>
+                <th class="text-center">見積数</th>
+                <th>作成日</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in projects %}
+            <tr>
+                <td>{{ item.project.id }}</td>
+                <td><a href="{{ url_for('main.project_detail', project_id=item.project.id) }}">{{ item.project.name }}</a></td>
+                <td>
+                    <span class="badge badge-{{ item.project.status }}">{{ item.project.status }}</span>
+                </td>
+                <td>
+                    {% if item.project.gmail_query %}Gmail{% endif %}
+                    {% if item.project.slack_channel_id %}Slack{% endif %}
+                </td>
+                <td class="text-center">{{ item.quote_count }}</td>
+                <td>{{ item.project.created_at.strftime('%Y-%m-%d') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 40px;">
+    <p style="color: #888; margin-bottom: 16px;">まだ案件がありません</p>
+    <a href="{{ url_for('main.project_create') }}" class="btn btn-primary">最初の案件を作成</a>
+</div>
+{% endif %}
+{% endblock %}

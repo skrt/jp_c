@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - 見積管理システム{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <div>
+        <h2>{{ project.name }}</h2>
+        <span class="badge badge-{{ project.status }}">{{ project.status }}</span>
+        {% if project.description %}
+        <p style="color: #666; margin-top: 4px;">{{ project.description }}</p>
+        {% endif %}
+    </div>
+    <div style="display: flex; gap: 8px;">
+        {% if quotes %}
+        <a href="{{ url_for('main.project_compare', project_id=project.id) }}" class="btn btn-primary">比較表</a>
+        <a href="{{ url_for('main.project_export_excel', project_id=project.id) }}" class="btn btn-success">Excel出力</a>
+        <a href="{{ url_for('main.project_export_pdf', project_id=project.id) }}" class="btn btn-outline">PDF出力</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Fetch / Import section -->
+<div class="card">
+    <h3 style="margin-bottom: 12px;">見積の取得・取り込み</h3>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        {% if project.gmail_query or project.slack_channel_id %}
+        <form method="post" action="{{ url_for('main.project_fetch', project_id=project.id) }}" style="display: flex; gap: 8px; align-items: end;">
+            <div>
+                <label for="source">取得元</label>
+                <select name="source" id="source" style="width: auto;">
+                    <option value="all">すべて</option>
+                    {% if project.gmail_query %}<option value="gmail">Gmail</option>{% endif %}
+                    {% if project.slack_channel_id %}<option value="slack">Slack</option>{% endif %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">取得実行</button>
+        </form>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('main.project_import', project_id=project.id) }}" enctype="multipart/form-data" style="display: flex; gap: 8px; align-items: end;">
+            <div>
+                <label for="supplier_name">サプライヤー名</label>
+                <input type="text" name="supplier_name" id="supplier_name" placeholder="任意" style="width: 200px;">
+            </div>
+            <div>
+                <label for="file">ファイル (PDF/Excel)</label>
+                <input type="file" name="file" id="file" accept=".pdf,.xlsx,.xls">
+            </div>
+            <button type="submit" class="btn btn-success">取り込み</button>
+        </form>
+    </div>
+</div>
+
+<!-- Quotes list -->
+{% if quotes %}
+<div class="card">
+    <h3 style="margin-bottom: 12px;">見積一覧（{{ quotes|length }}件）</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>サプライヤー</th>
+                <th class="text-right">合計金額</th>
+                <th>納期</th>
+                <th>ソース</th>
+                <th class="text-center">明細数</th>
+                <th>見積日</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in quotes %}
+            <tr>
+                <td>{{ item.quote.id }}</td>
+                <td><strong>{{ item.supplier.name }}</strong></td>
+                <td class="text-right">
+                    {% if item.quote.total_amount %}
+                        ¥{{ "{:,.0f}".format(item.quote.total_amount) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ item.quote.delivery_date or '-' }}</td>
+                <td>{{ item.quote.source_type }}</td>
+                <td class="text-center">{{ item.items|length }}</td>
+                <td>{{ item.quote.quote_date or '-' }}</td>
+            </tr>
+            {% if item.items %}
+            <tr>
+                <td colspan="7" style="padding: 0 12px 12px 40px; border-bottom: 2px solid #eee;">
+                    <table style="font-size: 12px; color: #666;">
+                        <tr>
+                            <th style="width: 40px;">No.</th>
+                            <th>品名</th>
+                            <th class="text-right" style="width: 80px;">数量</th>
+                            <th class="text-right" style="width: 100px;">単価</th>
+                            <th class="text-right" style="width: 100px;">金額</th>
+                        </tr>
+                        {% for li in item.items %}
+                        <tr>
+                            <td>{{ li.item_number or loop.index }}</td>
+                            <td>{{ li.description }}</td>
+                            <td class="text-right">{{ li.quantity or '-' }}{{ ' ' + li.unit if li.unit else '' }}</td>
+                            <td class="text-right">{% if li.unit_price %}¥{{ "{:,.0f}".format(li.unit_price) }}{% else %}-{% endif %}</td>
+                            <td class="text-right">{% if li.amount %}¥{{ "{:,.0f}".format(li.amount) }}{% else %}-{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 40px;">
+    <p style="color: #888;">まだ見積がありません。上のフォームから取得・取り込みを行ってください。</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}新規案件 - 見積管理システム{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 16px;">新規案件の作成</h2>
+
+<div class="card">
+    <form method="post" action="{{ url_for('main.project_create') }}">
+        <div class="form-group">
+            <label for="name">案件名 *</label>
+            <input type="text" id="name" name="name" required placeholder="例: 2026年度 サーバー機器調達">
+        </div>
+
+        <div class="form-group">
+            <label for="description">説明</label>
+            <textarea id="description" name="description" rows="3" placeholder="案件の概要"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="gmail_query">Gmail検索クエリ</label>
+            <input type="text" id="gmail_query" name="gmail_query" placeholder="例: subject:見積 subject:RFQ-2026-042">
+            <small style="color: #888;">Gmailの検索条件を指定します。空欄でもOK。</small>
+        </div>
+
+        <div class="form-group">
+            <label for="slack_channel_id">SlackチャンネルID</label>
+            <input type="text" id="slack_channel_id" name="slack_channel_id" placeholder="例: C01234567">
+            <small style="color: #888;">Slackから見積を取得する場合に指定します。</small>
+        </div>
+
+        <div class="form-group">
+            <label for="slack_thread_ts">Slackスレッド Timestamp</label>
+            <input type="text" id="slack_thread_ts" name="slack_thread_ts" placeholder="例: 1234567890.123456">
+            <small style="color: #888;">特定のスレッドに絞る場合に指定します。</small>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+            <button type="submit" class="btn btn-primary">作成</button>
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline">キャンセル</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

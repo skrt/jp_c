@@ -1,0 +1,39 @@
+[project]
+name = "quote-manager"
+version = "0.1.0"
+description = "相見積もり管理システム - Gmail/Slack連携、自動パース、比較表出力"
+requires-python = ">=3.11"
+dependencies = [
+    "google-api-python-client>=2.0",
+    "google-auth-oauthlib>=1.0",
+    "google-auth-httplib2>=0.2",
+    "slack-sdk>=3.27",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pdfplumber>=0.10",
+    "openpyxl>=3.1",
+    "anthropic>=0.40",
+    "click>=8.0",
+    "flask>=3.0",
+    "jinja2>=3.1",
+    "weasyprint>=62",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov", "ruff"]
+
+[project.scripts]
+quote-manager = "quote_manager.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100

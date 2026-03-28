@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}見積比較表 - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <h2>見積比較表: {{ project.name }}</h2>
+    <div style="display: flex; gap: 8px;">
+        <a href="{{ url_for('main.project_export_excel', project_id=project.id) }}" class="btn btn-success">Excel出力</a>
+        <a href="{{ url_for('main.project_export_pdf', project_id=project.id) }}" class="btn btn-outline">PDF出力</a>
+        <a href="{{ url_for('main.project_detail', project_id=project.id) }}" class="btn btn-outline">戻る</a>
+    </div>
+</div>
+
+{% if table %}
+<div class="card" style="overflow-x: auto;">
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 40px;">No.</th>
+                <th style="min-width: 200px;">品名・説明</th>
+                {% for sup in table.suppliers %}
+                <th class="text-right" style="min-width: 130px;">{{ sup.name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in table.rows %}
+            <tr>
+                <td class="text-center">{{ row.item_number }}</td>
+                <td>{{ row.description }}</td>
+                {% for cell in row.cells %}
+                <td class="text-right" {% if cell.is_lowest %}style="background: #c6efce; font-weight: bold;"{% endif %}>
+                    {% if cell.amount is not none %}
+                        ¥{{ "{:,.0f}".format(cell.amount) }}
+                    {% elif cell.unit_price is not none %}
+                        ¥{{ "{:,.0f}".format(cell.unit_price) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+
+            <!-- Summary -->
+            <tr style="border-top: 3px solid #4472C4; font-weight: bold;">
+                <td colspan="2" class="text-center" style="background: #f0f0f0;">合計金額</td>
+                {% for summary in table.summaries %}
+                <td class="text-right" {% if summary.is_lowest_total %}style="background: #c6efce;"{% endif %}>
+                    {% if summary.total_amount is not none %}
+                        ¥{{ "{:,.0f}".format(summary.total_amount) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-center" style="background: #f0f0f0; font-weight: bold;">納期</td>
+                {% for summary in table.summaries %}
+                <td class="text-center">{{ summary.delivery_date or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-center" style="background: #f0f0f0; font-weight: bold;">支払条件</td>
+                {% for summary in table.summaries %}
+                <td class="text-center">{{ summary.payment_terms or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-center" style="background: #f0f0f0; font-weight: bold;">見積有効期限</td>
+                {% for summary in table.summaries %}
+                <td class="text-center">{{ summary.validity_date or '-' }}</td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<p style="color: #888; font-size: 12px; margin-top: 8px;">※ 緑色のセルは最安値を示します</p>
+{% else %}
+<div class="card" style="text-align: center; padding: 40px;">
+    <p style="color: #888;">比較する見積がありません。</p>
+</div>
+{% endif %}
+{% endblock %}

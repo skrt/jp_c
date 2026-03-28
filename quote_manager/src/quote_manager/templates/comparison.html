@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>見積比較表 - {{ table.project_name }}</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 15mm;
+        }
+        body {
+            font-family: "Noto Sans JP", "Yu Gothic", "Hiragino Kaku Gothic ProN", sans-serif;
+            font-size: 10px;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0 5px;
+            color: #1a1a2e;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background-color: #4472C4;
+            color: white;
+            padding: 8px 6px;
+            text-align: center;
+            font-size: 10px;
+            border: 1px solid #3460a8;
+        }
+        td {
+            padding: 6px;
+            border: 1px solid #ccc;
+            font-size: 10px;
+        }
+        .num {
+            text-align: center;
+            width: 30px;
+        }
+        .desc {
+            text-align: left;
+            min-width: 150px;
+        }
+        .price {
+            text-align: right;
+            white-space: nowrap;
+        }
+        .lowest {
+            background-color: #c6efce;
+            font-weight: bold;
+        }
+        .summary-label {
+            font-weight: bold;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        .total-row td {
+            font-weight: bold;
+            border-top: 2px solid #4472C4;
+        }
+        .footer {
+            text-align: right;
+            font-size: 9px;
+            color: #999;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">見積比較表</div>
+    <div class="subtitle">案件名: {{ table.project_name }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th class="num">No.</th>
+                <th class="desc">品名・説明</th>
+                {% for sup in table.suppliers %}
+                <th class="price">{{ sup.name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in table.rows %}
+            <tr>
+                <td class="num">{{ row.item_number }}</td>
+                <td class="desc">{{ row.description }}</td>
+                {% for cell in row.cells %}
+                <td class="price {% if cell.is_lowest %}lowest{% endif %}">
+                    {% if cell.amount is not none %}
+                        {{ format_currency(cell.amount) }}
+                    {% elif cell.unit_price is not none %}
+                        {{ format_currency(cell.unit_price) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+
+            <!-- Summary rows -->
+            <tr class="total-row">
+                <td colspan="2" class="summary-label">合計金額</td>
+                {% for summary in table.summaries %}
+                <td class="price {% if summary.is_lowest_total %}lowest{% endif %}">
+                    {% if summary.total_amount is not none %}
+                        {{ format_currency(summary.total_amount) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="summary-label">納期</td>
+                {% for summary in table.summaries %}
+                <td style="text-align: center;">{{ summary.delivery_date or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="summary-label">支払条件</td>
+                {% for summary in table.summaries %}
+                <td style="text-align: center;">{{ summary.payment_terms or '-' }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="summary-label">見積有効期限</td>
+                {% for summary in table.summaries %}
+                <td style="text-align: center;">{{ summary.validity_date or '-' }}</td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        ※ 緑色のセルは最安値を示します
+    </div>
+</body>
+</html>
