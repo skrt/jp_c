@@ -14,7 +14,7 @@ HEADER_KEYWORDS = {
     "description": ["品名", "品目", "名称", "摘要", "内容", "商品", "item", "description", "product"],
     "quantity": ["数量", "qty", "quantity", "数"],
     "unit": ["単位", "unit"],
-    "unit_price": ["単価", "unit price", "price", "単"],
+    "unit_price": ["単価", "unit price", "price"],
     "amount": ["金額", "amount", "計"],
 }
 

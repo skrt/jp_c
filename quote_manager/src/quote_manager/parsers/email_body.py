@@ -17,8 +17,8 @@ PRICE_PATTERNS = [
 
 # Total amount patterns
 TOTAL_PATTERNS = [
-    re.compile(r"(?:合計|総額|total|小計|税込|税抜)[\s:：]*¥?\s?([\d,]+)\s?円?", re.IGNORECASE),
-    re.compile(r"(?:合計|総額|total)[\s:：]*\$?\s?([\d,.]+)", re.IGNORECASE),
+    re.compile(r"(?:合計金額|合計|総額|total|小計|税込|税抜)[はがの\s:：]*¥?\s?([\d,]+)\s?円?", re.IGNORECASE),
+    re.compile(r"(?:合計金額|合計|総額|total)[はがの\s:：]*\$?\s?([\d,.]+)", re.IGNORECASE),
 ]
 
 # Quote number patterns
